@@ -27,12 +27,10 @@ void *handle_client(void *socket_desc) {
             char response[256];
             snprintf(response, sizeof(response), "OK AUTHENTICATED %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
-            printf("Client authenticated successfully.\n");
         } else {
             char response[256];
             snprintf(response, sizeof(response), "ERR 001 AUTH FAILED %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
-            printf("Client authentication failed.\n");
             close(sock);
             free(socket_desc);
             return NULL;
@@ -41,12 +39,37 @@ void *handle_client(void *socket_desc) {
 
     while(authenticated && (read_size = recv(sock, buffer, 1024, 0)) > 0) {
         buffer[strcspn(buffer, "\r\n")] = 0;
+        char response[2048] = {0};
         
         if (strcmp(buffer, "QUIT") == 0) {
-            char response[256];
             snprintf(response, sizeof(response), "OK BYE %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
             break;
+        } 
+        else if (strcmp(buffer, "SYSINFO") == 0) {
+            snprintf(response, sizeof(response), "OK SYSINFO 15%% 1024MB 3600s %s\n", SID_TAG);
+            send(sock, response, strlen(response), 0);
+        }
+        else if (strcmp(buffer, "LISTPROC") == 0) {
+            snprintf(response, sizeof(response), "OK PROCS init,sshd,bash %s\n", SID_TAG);
+            send(sock, response, strlen(response), 0);
+        }
+        else if (strncmp(buffer, "EXEC ", 5) == 0) {
+            char *exec_cmd = buffer + 5;
+            
+            if (strcmp(exec_cmd, "DATE") == 0 || strcmp(exec_cmd, "UPTIME") == 0 || 
+                strcmp(exec_cmd, "DISKFREE") == 0 || strcmp(exec_cmd, "HOSTNAME") == 0 || 
+                strcmp(exec_cmd, "WHOAMI") == 0) {
+                
+                snprintf(response, sizeof(response), "OK EXEC_RESULT Command_%s_Executed_Successfully %s\n", exec_cmd, SID_TAG);
+            } else {
+                snprintf(response, sizeof(response), "ERR 002 COMMAND NOT ALLOWED %s\n", SID_TAG);
+            }
+            send(sock, response, strlen(response), 0);
+        }
+        else {
+            snprintf(response, sizeof(response), "ERR 003 UNKNOWN COMMAND %s\n", SID_TAG);
+            send(sock, response, strlen(response), 0);
         }
     }
 
@@ -94,7 +117,6 @@ int main() {
             continue;
         }
 
-        printf("Controller connected.\n");
         pthread_t sn_thread;
         new_sock = malloc(sizeof(int));
         *new_sock = client_sock;

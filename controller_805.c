@@ -8,10 +8,19 @@
 #define PORT 9410
 #define AUTH_TOKEN "OPS-2805"
 
+void send_command(int sock, const char *cmd) {
+    char buffer[2048] = {0};
+    send(sock, cmd, strlen(cmd), 0);
+    int valread = read(sock, buffer, 2048);
+    if (valread > 0) {
+        buffer[valread] = '\0';
+        printf("Agent: %s", buffer);
+    }
+}
+
 int main() {
     int sock = 0;
     struct sockaddr_in serv_addr;
-    char buffer[1024] = {0};
     
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("Socket creation error\n");
@@ -31,24 +40,15 @@ int main() {
         return -1;
     }
 
-    printf("Successfully connected to Agent on port %d\n", PORT);
-    
     char auth_cmd[256];
     snprintf(auth_cmd, sizeof(auth_cmd), "AUTH %s\n", AUTH_TOKEN);
-    send(sock, auth_cmd, strlen(auth_cmd), 0);
+    send_command(sock, auth_cmd);
     
-    int valread = read(sock, buffer, 1024);
-    if (valread > 0) {
-        buffer[valread] = '\0';
-        printf("Agent Reply: %s", buffer);
-    }
-
-    send(sock, "QUIT\n", 5, 0);
-    valread = read(sock, buffer, 1024);
-    if (valread > 0) {
-        buffer[valread] = '\0';
-        printf("Agent Reply: %s", buffer);
-    }
+    send_command(sock, "SYSINFO\n");
+    send_command(sock, "LISTPROC\n");
+    send_command(sock, "EXEC WHOAMI\n");
+    send_command(sock, "EXEC HACK_SYSTEM\n"); 
+    send_command(sock, "QUIT\n");
     
     close(sock);
     return 0;
