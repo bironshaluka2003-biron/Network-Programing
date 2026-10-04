@@ -47,7 +47,8 @@ int main() {
     send_command(sock, "SYSINFO\n");
     send_command(sock, "LISTPROC\n");
     send_command(sock, "EXEC WHOAMI\n");
-    send_command(sock, "EXEC HACK_SYSTEM\n"); 
+    send_command(sock, "PUT config.txt\n"); 
+    send_command(sock, "GET log.txt\n"); 
     send_command(sock, "QUIT\n");
     
     close(sock);

@@ -56,15 +56,21 @@ void *handle_client(void *socket_desc) {
         }
         else if (strncmp(buffer, "EXEC ", 5) == 0) {
             char *exec_cmd = buffer + 5;
-            
             if (strcmp(exec_cmd, "DATE") == 0 || strcmp(exec_cmd, "UPTIME") == 0 || 
                 strcmp(exec_cmd, "DISKFREE") == 0 || strcmp(exec_cmd, "HOSTNAME") == 0 || 
                 strcmp(exec_cmd, "WHOAMI") == 0) {
-                
                 snprintf(response, sizeof(response), "OK EXEC_RESULT Command_%s_Executed_Successfully %s\n", exec_cmd, SID_TAG);
             } else {
                 snprintf(response, sizeof(response), "ERR 002 COMMAND NOT ALLOWED %s\n", SID_TAG);
             }
+            send(sock, response, strlen(response), 0);
+        }
+        else if (strncmp(buffer, "PUT ", 4) == 0) {
+            snprintf(response, sizeof(response), "OK PUT_SUCCESS File_Received %s\n", SID_TAG);
+            send(sock, response, strlen(response), 0);
+        }
+        else if (strncmp(buffer, "GET ", 4) == 0) {
+            snprintf(response, sizeof(response), "OK GET_SUCCESS File_Data_Sent %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
         }
         else {
