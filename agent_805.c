@@ -6,6 +6,34 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
+typedef struct {
+    char client_ip[64];
+    int udp_port;
+    int *monitor_active;
+} MonitorArgs;
+
+void* udp_monitor_thread(void* arg) {
+    MonitorArgs* args = (MonitorArgs*)arg;
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    struct sockaddr_in serveraddr;
+    
+    memset(&serveraddr, 0, sizeof(serveraddr));
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_port = htons(args->udp_port);
+    inet_pton(AF_INET, args->client_ip, &serveraddr.sin_addr);
+
+    while (*(args->monitor_active)) {
+        char message[256];
+        snprintf(message, sizeof(message), "SYSINFO 15%% 1024MB 3600s SID:5082\n");
+        sendto(sockfd, message, strlen(message), 0, (const struct sockaddr *)&serveraddr, sizeof(serveraddr));
+        sleep(3);
+    }
+    
+    close(sockfd);
+    free(args);
+    return NULL;
+}
+
 #define PORT 9410
 #define AUTH_TOKEN "OPS-2805"
 #define SID_TAG "SID:5082"
@@ -14,6 +42,19 @@ void *handle_client(void *socket_desc) {
     int sock = *(int*)socket_desc;
     char buffer[1024] = {0};
     int authenticated = 0;
+
+int monitor_active = 0;
+    pthread_t monitor_tid;
+    struct sockaddr_in peer_addr;
+    socklen_t peer_len = sizeof(peer_addr);
+    char client_ip[64];
+    getpeername(sock, (struct sockaddr*)&peer_addr, &peer_len);
+    inet_ntop(AF_INET, &(peer_addr.sin_addr), client_ip, sizeof(client_ip));
+
+
+
+
+
     int read_size;
 
     read_size = recv(sock, buffer, 1024, 0);
@@ -23,6 +64,7 @@ void *handle_client(void *socket_desc) {
         char *token = strtok(NULL, " ");
 
         if (cmd != NULL && strcmp(cmd, "AUTH") == 0 && token != NULL && strcmp(token, AUTH_TOKEN) == 0) {
+
             authenticated = 1;
             char response[256];
             snprintf(response, sizeof(response), "OK AUTHENTICATED %s\n", SID_TAG);
@@ -73,6 +115,32 @@ void *handle_client(void *socket_desc) {
             snprintf(response, sizeof(response), "OK GET_SUCCESS File_Data_Sent %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
         }
+
+else if (strncmp(buffer, "MONITOR START", 13) == 0) {
+            int udp_port;
+            sscanf(buffer, "MONITOR START %d", &udp_port);
+            
+            if (!monitor_active) {
+                monitor_active = 1;
+                MonitorArgs* m_args = malloc(sizeof(MonitorArgs));
+                strcpy(m_args->client_ip, client_ip);
+                m_args->udp_port = udp_port;
+                m_args->monitor_active = &monitor_active;
+                
+                pthread_create(&monitor_tid, NULL, udp_monitor_thread, m_args);
+                pthread_detach(monitor_tid);
+            }
+            snprintf(response, sizeof(response), "OK MONITOR STARTED %s\n", SID_TAG);
+            send(sock, response, strlen(response), 0);
+        }
+        else if (strncmp(buffer, "MONITOR STOP", 12) == 0) {
+            monitor_active = 0;
+            snprintf(response, sizeof(response), "OK MONITOR STOPPED %s\n", SID_TAG);
+            send(sock, response, strlen(response), 0);
+        }
+
+
+
         else {
             snprintf(response, sizeof(response), "ERR 003 UNKNOWN COMMAND %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);

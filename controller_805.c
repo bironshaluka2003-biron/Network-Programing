@@ -49,6 +49,13 @@ int main() {
     send_command(sock, "EXEC WHOAMI\n");
     send_command(sock, "PUT config.txt\n"); 
     send_command(sock, "GET log.txt\n"); 
+
+    send_command(sock, "MONITOR START 8080\n");
+    sleep(5);
+    send_command(sock, "MONITOR STOP\n");
+
+
+
     send_command(sock, "QUIT\n");
     
     close(sock);
