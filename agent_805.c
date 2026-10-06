@@ -16,7 +16,7 @@ void* udp_monitor_thread(void* arg) {
     MonitorArgs* args = (MonitorArgs*)arg;
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr_in serveraddr;
-    
+
     memset(&serveraddr, 0, sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_port = htons(args->udp_port);
@@ -28,7 +28,7 @@ void* udp_monitor_thread(void* arg) {
         sendto(sockfd, message, strlen(message), 0, (const struct sockaddr *)&serveraddr, sizeof(serveraddr));
         sleep(3);
     }
-    
+
     close(sockfd);
     free(args);
     return NULL;
@@ -37,11 +37,23 @@ void* udp_monitor_thread(void* arg) {
 #define PORT 9410
 #define AUTH_TOKEN "OPS-2805"
 #define SID_TAG "SID:5082"
+void log_action(const char *action) {
+    FILE *log_file = fopen("remoteops_IT24102805.log", "a");
+    if (log_file != NULL) {
+        fprintf(log_file, "%s\n", action);
+        fclose(log_file);
+    }
+}
+
+
+
 
 void *handle_client(void *socket_desc) {
     int sock = *(int*)socket_desc;
     char buffer[1024] = {0};
     int authenticated = 0;
+
+log_action("Client Connected");
 
 int monitor_active = 0;
     pthread_t monitor_tid;
@@ -66,6 +78,9 @@ int monitor_active = 0;
         if (cmd != NULL && strcmp(cmd, "AUTH") == 0 && token != NULL && strcmp(token, AUTH_TOKEN) == 0) {
 
             authenticated = 1;
+	    log_action("Client Authenticated");
+
+
             char response[256];
             snprintf(response, sizeof(response), "OK AUTHENTICATED %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
