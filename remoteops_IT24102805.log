@@ -1,0 +1,12 @@
+Client Connected
+Client Authenticated
+Client Connected
+Client Authenticated
+Command Received: SYSINFO
+Command Received: PROCS
+Command Received: EXEC
+Command Received: PUT
+Command Received: GET
+Command Received: MONITOR START
+Command Received: MONITOR STOP
+Command Received: BYE

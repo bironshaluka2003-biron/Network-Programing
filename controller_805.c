@@ -54,10 +54,8 @@ int main() {
     sleep(5);
     send_command(sock, "MONITOR STOP\n");
 
-
-
     send_command(sock, "QUIT\n");
-    
+
     close(sock);
     return 0;
 }
