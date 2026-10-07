@@ -37,6 +37,7 @@ void* udp_monitor_thread(void* arg) {
 #define PORT 9410
 #define AUTH_TOKEN "OPS-2805"
 #define SID_TAG "SID:5082"
+
 void log_action(const char *action) {
     FILE *log_file = fopen("remoteops_IT24102805.log", "a");
     if (log_file != NULL) {
@@ -45,27 +46,20 @@ void log_action(const char *action) {
     }
 }
 
-
-
-
 void *handle_client(void *socket_desc) {
     int sock = *(int*)socket_desc;
     char buffer[1024] = {0};
     int authenticated = 0;
 
-log_action("Client Connected");
+    log_action("Client Connected");
 
-int monitor_active = 0;
+    int monitor_active = 0;
     pthread_t monitor_tid;
     struct sockaddr_in peer_addr;
     socklen_t peer_len = sizeof(peer_addr);
     char client_ip[64];
     getpeername(sock, (struct sockaddr*)&peer_addr, &peer_len);
     inet_ntop(AF_INET, &(peer_addr.sin_addr), client_ip, sizeof(client_ip));
-
-
-
-
 
     int read_size;
 
@@ -76,10 +70,8 @@ int monitor_active = 0;
         char *token = strtok(NULL, " ");
 
         if (cmd != NULL && strcmp(cmd, "AUTH") == 0 && token != NULL && strcmp(token, AUTH_TOKEN) == 0) {
-
             authenticated = 1;
-	    log_action("Client Authenticated");
-
+            log_action("Client Authenticated");
 
             char response[256];
             snprintf(response, sizeof(response), "OK AUTHENTICATED %s\n", SID_TAG);
@@ -99,19 +91,23 @@ int monitor_active = 0;
         char response[2048] = {0};
         
         if (strcmp(buffer, "QUIT") == 0) {
+            log_action("Command Received: BYE");
             snprintf(response, sizeof(response), "OK BYE %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
             break;
         } 
         else if (strcmp(buffer, "SYSINFO") == 0) {
+            log_action("Command Received: SYSINFO");
             snprintf(response, sizeof(response), "OK SYSINFO 15%% 1024MB 3600s %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
         }
         else if (strcmp(buffer, "LISTPROC") == 0) {
+            log_action("Command Received: PROCS");
             snprintf(response, sizeof(response), "OK PROCS init,sshd,bash %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
         }
         else if (strncmp(buffer, "EXEC ", 5) == 0) {
+            log_action("Command Received: EXEC");
             char *exec_cmd = buffer + 5;
             if (strcmp(exec_cmd, "DATE") == 0 || strcmp(exec_cmd, "UPTIME") == 0 || 
                 strcmp(exec_cmd, "DISKFREE") == 0 || strcmp(exec_cmd, "HOSTNAME") == 0 || 
@@ -123,15 +119,17 @@ int monitor_active = 0;
             send(sock, response, strlen(response), 0);
         }
         else if (strncmp(buffer, "PUT ", 4) == 0) {
+            log_action("Command Received: PUT");
             snprintf(response, sizeof(response), "OK PUT_SUCCESS File_Received %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
         }
         else if (strncmp(buffer, "GET ", 4) == 0) {
+            log_action("Command Received: GET");
             snprintf(response, sizeof(response), "OK GET_SUCCESS File_Data_Sent %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
         }
-
-else if (strncmp(buffer, "MONITOR START", 13) == 0) {
+        else if (strncmp(buffer, "MONITOR START", 13) == 0) {
+            log_action("Command Received: MONITOR START");
             int udp_port;
             sscanf(buffer, "MONITOR START %d", &udp_port);
             
@@ -149,13 +147,11 @@ else if (strncmp(buffer, "MONITOR START", 13) == 0) {
             send(sock, response, strlen(response), 0);
         }
         else if (strncmp(buffer, "MONITOR STOP", 12) == 0) {
+            log_action("Command Received: MONITOR STOP");
             monitor_active = 0;
             snprintf(response, sizeof(response), "OK MONITOR STOPPED %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
         }
-
-
-
         else {
             snprintf(response, sizeof(response), "ERR 003 UNKNOWN COMMAND %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
