@@ -48,10 +48,10 @@ int main() {
     send_command(sock, "LISTPROC\n");
     send_command(sock, "EXEC WHOAMI\n");
     
-   
     send_command(sock, "EXEC RM\n");
     
-    send_command(sock, "PUT config.txt\n"); 
+    /* PDF එකේ Protocol එකට අනුව File Size එක (1024) එකතු කරන ලදී */
+    send_command(sock, "PUT config.txt 1024\n"); 
     send_command(sock, "GET log.txt\n"); 
 
     send_command(sock, "MONITOR START 8080\n");

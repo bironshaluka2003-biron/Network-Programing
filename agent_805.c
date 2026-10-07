@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -121,12 +120,14 @@ void *handle_client(void *socket_desc) {
         }
         else if (strncmp(buffer, "PUT ", 4) == 0) {
             log_action("Command Received: PUT");
-            snprintf(response, sizeof(response), "OK PUT_SUCCESS File_Received %s\n", SID_TAG);
+            /* PDF එකේ Protocol එකට අනුකූලව වෙනස් කරන ලදී */
+            snprintf(response, sizeof(response), "OK FILE RECEIVED config.txt %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
         }
         else if (strncmp(buffer, "GET ", 4) == 0) {
             log_action("Command Received: GET");
-            snprintf(response, sizeof(response), "OK GET_SUCCESS File_Data_Sent %s\n", SID_TAG);
+            /* PDF එකේ Protocol එකට අනුකූලව වෙනස් කරන ලදී */
+            snprintf(response, sizeof(response), "OK FILE SEND log.txt 1024 %s\n", SID_TAG);
             send(sock, response, strlen(response), 0);
         }
         else if (strncmp(buffer, "MONITOR START", 13) == 0) {
@@ -218,4 +219,3 @@ int main() {
     close(server_fd);
     return 0;
 }
-
